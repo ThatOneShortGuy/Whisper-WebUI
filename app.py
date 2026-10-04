@@ -16,6 +16,7 @@ from modules.utils.youtube_manager import get_ytmetas
 from modules.translation.deepl_api import DeepLAPI
 from modules.whisper.data_classes import *
 from modules.utils.logger import get_logger
+from modules.utils.output_editor import OutputEditor
 
 
 logger = get_logger()
@@ -41,6 +42,7 @@ class App:
         self.deepl_api = DeepLAPI(
             output_dir=os.path.join(self.args.output_dir, "translations")
         )
+        self.output_editor = OutputEditor(output_dir=self.args.output_dir)
         self.i18n = load_yaml(I18N_YAML_PATH)
         self.default_params = load_yaml(DEFAULT_PARAMETERS_CONFIG_PATH)
         logger.info(f"Use \"{self.args.whisper_type}\" implementation\n"
@@ -133,16 +135,17 @@ class App:
                         with gr.Row():
                             btn_run = gr.Button(_("GENERATE SUBTITLE FILE"), variant="primary")
                         with gr.Row():
-                            tb_indicator = gr.Textbox(label=_("Output"), scale=5)
+                            tb_indicator = gr.Textbox(label=_("Output"), scale=5, interactive=True)
                             files_subtitles = gr.Files(label=_("Downloadable output file"), scale=3, interactive=False)
                             btn_openfolder = gr.Button('📂', scale=1)
 
                         params = [input_file, tb_input_folder, cb_include_subdirectory, cb_save_same_dir,
                                   dd_file_format, cb_timestamp]
                         params = params + pipeline_params
-                        btn_run.click(fn=self.whisper_inf.transcribe_file,
-                                      inputs=params,
-                                      outputs=[tb_indicator, files_subtitles])
+                        run_event = btn_run.click(fn=self.whisper_inf.transcribe_file,
+                                                  inputs=params,
+                                                  outputs=[tb_indicator, files_subtitles])
+                        self.output_editor.create_ui(tb_indicator, files_subtitles, run_event)
                         btn_openfolder.click(fn=lambda: self.open_folder("outputs"), inputs=None, outputs=None)
 
                     with gr.TabItem(_("Youtube")):  # tab2
@@ -160,15 +163,16 @@ class App:
                         with gr.Row():
                             btn_run = gr.Button(_("GENERATE SUBTITLE FILE"), variant="primary")
                         with gr.Row():
-                            tb_indicator = gr.Textbox(label=_("Output"), scale=5)
+                            tb_indicator = gr.Textbox(label=_("Output"), scale=5, interactive=True)
                             files_subtitles = gr.Files(label=_("Downloadable output file"), scale=3)
                             btn_openfolder = gr.Button('📂', scale=1)
 
                         params = [tb_youtubelink, dd_file_format, cb_timestamp]
 
-                        btn_run.click(fn=self.whisper_inf.transcribe_youtube,
-                                      inputs=params + pipeline_params,
-                                      outputs=[tb_indicator, files_subtitles])
+                        run_event = btn_run.click(fn=self.whisper_inf.transcribe_youtube,
+                                                  inputs=params + pipeline_params,
+                                                  outputs=[tb_indicator, files_subtitles])
+                        self.output_editor.create_ui(tb_indicator, files_subtitles, run_event)
                         tb_youtubelink.change(get_ytmetas, inputs=[tb_youtubelink],
                                               outputs=[img_thumbnail, tb_title, tb_description])
                         btn_openfolder.click(fn=lambda: self.open_folder("outputs"), inputs=None, outputs=None)
@@ -183,15 +187,16 @@ class App:
                         with gr.Row():
                             btn_run = gr.Button(_("GENERATE SUBTITLE FILE"), variant="primary")
                         with gr.Row():
-                            tb_indicator = gr.Textbox(label=_("Output"), scale=5)
+                            tb_indicator = gr.Textbox(label=_("Output"), scale=5, interactive=True)
                             files_subtitles = gr.Files(label=_("Downloadable output file"), scale=3)
                             btn_openfolder = gr.Button('📂', scale=1)
 
                         params = [mic_input, dd_file_format, cb_timestamp]
 
-                        btn_run.click(fn=self.whisper_inf.transcribe_mic,
-                                      inputs=params + pipeline_params,
-                                      outputs=[tb_indicator, files_subtitles])
+                        run_event = btn_run.click(fn=self.whisper_inf.transcribe_mic,
+                                                  inputs=params + pipeline_params,
+                                                  outputs=[tb_indicator, files_subtitles])
+                        self.output_editor.create_ui(tb_indicator, files_subtitles, run_event)
                         btn_openfolder.click(fn=lambda: self.open_folder("outputs"), inputs=None, outputs=None)
 
                     with gr.TabItem(_("T2T Translation")):  # tab 4
