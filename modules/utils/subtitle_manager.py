@@ -222,7 +222,7 @@ class SubtitlesWriter(ResultWriter):
                         )
                         last = end
 
-                if align_lrc_words:
+                elif align_lrc_words:
                     lrc_aligned_words = [f"[{self.format_timestamp(sub['start'])}]{sub['word']}" for sub in subtitle]
                     l_start, l_end = self.format_timestamp(subtitle[-1]['start']), self.format_timestamp(subtitle[-1]['end'])
                     lrc_aligned_words[-1] = f"[{l_start}]{subtitle[-1]['word']}[{l_end}]"
