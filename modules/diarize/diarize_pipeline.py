@@ -4,8 +4,13 @@ import numpy as np
 import pandas as pd
 import os
 from pyannote.audio import Pipeline
+from pyannote.audio.core.task import Specifications, Problem, Resolution
 from typing import Optional, Union
 import torch
+
+# torch>=2.6 defaults torch.load to weights_only=True, which rejects these metadata
+# classes stored in pyannote's segmentation/embedding checkpoints. Allowlist only them.
+torch.serialization.add_safe_globals([Specifications, Problem, Resolution, torch.torch_version.TorchVersion])
 
 from modules.whisper.data_classes import *
 from modules.utils.paths import DIARIZATION_MODELS_DIR
