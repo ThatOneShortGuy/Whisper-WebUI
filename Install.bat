@@ -2,14 +2,14 @@
 
 if not exist "%~dp0\venv\Scripts" (
     echo Creating venv...
-    python -m venv venv
+    call python -m venv venv
 )
 echo checked the venv folder. now installing requirements..
 
 call "%~dp0\venv\scripts\activate"
 
 python -m pip install -U pip
-pip install -r requirements.txt
+pip install --build-constraint build-constraints.txt -r requirements.txt
 
 if errorlevel 1 (
     echo.

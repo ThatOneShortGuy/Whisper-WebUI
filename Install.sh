@@ -8,7 +8,7 @@ fi
 source venv/bin/activate
 
 python -m pip install -U pip
-pip install -r requirements.txt && echo "Requirements installed successfully." || {
+pip install --build-constraint build-constraints.txt -r requirements.txt && echo "Requirements installed successfully." || {
     echo ""
     echo "Requirements installation failed. Please remove the venv folder and run the script again."
     deactivate

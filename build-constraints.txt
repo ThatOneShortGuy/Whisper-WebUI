@@ -1,0 +1,3 @@
+# Build-time constraints for packages pip builds from source (see Install.bat / Install.sh).
+# setuptools 81 removed pkg_resources, which jhj0517-whisper's setup.py imports.
+setuptools<81
