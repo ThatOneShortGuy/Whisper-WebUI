@@ -91,10 +91,21 @@ class Diarizer:
             if "speaker" in segment:
                 speaker = segment["speaker"]
             diarized_text = speaker + "|" + segment["text"].strip()
+
+            # Keep word timestamps. Subtitle writers build lines from words when present,
+            # so the speaker label goes on the first word to stay visible.
+            words = None
+            if segment.get("words"):
+                words = [Word(**word) for word in segment["words"]]
+                first = words[0].word
+                stripped = first.lstrip()
+                words[0].word = first[:len(first) - len(stripped)] + speaker + "|" + stripped
+
             segments_result.append(Segment(
                 start=segment["start"],
                 end=segment["end"],
-                text=diarized_text
+                text=diarized_text,
+                words=words
             ))
 
         elapsed_time = time.time() - start_time
