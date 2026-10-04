@@ -27,7 +27,8 @@ class Diarizer:
             audio: Union[str, BinaryIO, np.ndarray],
             transcribed_result: List[Segment],
             use_auth_token: str,
-            device: Optional[str] = None
+            device: Optional[str] = None,
+            params: Optional[DiarizationParams] = None
             ) -> Tuple[List[Segment], float]:
         """
         Diarize transcribed result as a post-processing
@@ -43,6 +44,8 @@ class Diarizer:
             You must manually go to the website https://huggingface.co/pyannote/speaker-diarization-3.1 and agree to their TOS to download the model.
         device: Optional[str]
             Device for diarization.
+        params: Optional[DiarizationParams]
+            Speaker count and clustering options. Defaults are used when None.
 
         Returns
         ----------
@@ -62,12 +65,24 @@ class Diarizer:
                 use_auth_token=use_auth_token
             )
 
+        if params is None:
+            params = DiarizationParams()
+
         audio = load_audio(audio)
 
-        diarization_segments = self.pipe(audio)
+        diarization_segments = self.pipe(
+            audio,
+            num_speakers=params.num_speakers,
+            min_speakers=params.min_speakers,
+            max_speakers=params.max_speakers,
+            clustering_threshold=params.clustering_threshold,
+            min_cluster_size=params.min_cluster_size,
+            min_duration_off=params.min_duration_off,
+        )
         diarized_result = assign_word_speakers(
             diarization_segments,
-            {"segments": transcribed_result}
+            {"segments": transcribed_result},
+            fill_nearest=params.fill_nearest
         )
 
         segments_result = []

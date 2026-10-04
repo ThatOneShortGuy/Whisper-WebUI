@@ -32,15 +32,32 @@ class DiarizationPipeline:
             use_auth_token=use_auth_token,
             cache_dir=cache_dir
         ).to(device)
+        self.default_hyperparameters = self.model.parameters(instantiated=True)
 
-    def __call__(self, audio: Union[str, np.ndarray], min_speakers=None, max_speakers=None):
+    def __call__(self, audio: Union[str, np.ndarray], num_speakers=None, min_speakers=None, max_speakers=None,
+                 clustering_threshold=None, min_cluster_size=None, min_duration_off=None):
         if isinstance(audio, str):
             audio = load_audio(audio)
         audio_data = {
             'waveform': torch.from_numpy(audio[None, :]),
             'sample_rate': SAMPLE_RATE
         }
-        segments = self.model(audio_data, min_speakers=min_speakers, max_speakers=max_speakers)
+
+        # Re-instantiate every call so values left as None fall back to the model's defaults
+        hyperparameters = {
+            "segmentation": dict(self.default_hyperparameters["segmentation"]),
+            "clustering": dict(self.default_hyperparameters["clustering"]),
+        }
+        if min_duration_off is not None:
+            hyperparameters["segmentation"]["min_duration_off"] = min_duration_off
+        if clustering_threshold is not None:
+            hyperparameters["clustering"]["threshold"] = clustering_threshold
+        if min_cluster_size is not None:
+            hyperparameters["clustering"]["min_cluster_size"] = min_cluster_size
+        self.model.instantiate(hyperparameters)
+
+        segments = self.model(audio_data, num_speakers=num_speakers,
+                              min_speakers=min_speakers, max_speakers=max_speakers)
         diarize_df = pd.DataFrame(segments.itertracks(yield_label=True), columns=['segment', 'label', 'speaker'])
         diarize_df['start'] = diarize_df['segment'].apply(lambda x: x.start)
         diarize_df['end'] = diarize_df['segment'].apply(lambda x: x.end)

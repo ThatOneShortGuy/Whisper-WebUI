@@ -164,13 +164,55 @@ class DiarizationParams(BaseParams):
         default=True,
         description="Offload Diarization model after Speaker diarization"
     )
+    num_speakers: Optional[int] = Field(
+        default=None,
+        description="Exact number of speakers. None (or 0) to detect automatically"
+    )
+    min_speakers: Optional[int] = Field(
+        default=None,
+        description="Minimum number of speakers. None (or 0) for no lower bound"
+    )
+    max_speakers: Optional[int] = Field(
+        default=None,
+        description="Maximum number of speakers. None (or 0) for no upper bound"
+    )
+    clustering_threshold: float = Field(
+        default=0.7045654963945799,
+        ge=0.0,
+        le=2.0,
+        description="Clustering distance threshold. Lower splits voices into more speakers, higher merges them. "
+                    "Ignored when the number of speakers is fixed"
+    )
+    min_cluster_size: int = Field(
+        default=12,
+        ge=1,
+        le=20,
+        description="Minimum cluster size. Lower lets speakers who talk only briefly get their own label"
+    )
+    min_duration_off: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Pauses within a speaker's turn shorter than this (seconds) are filled in"
+    )
+    fill_nearest: bool = Field(
+        default=False,
+        description="Assign the nearest speaker to words that don't overlap any detected speech turn"
+    )
+
+    @field_validator("num_speakers", "min_speakers", "max_speakers", mode="before")
+    def zero_speakers_to_none(cls, v):
+        # Gradio number boxes send 0 (or None when cleared) for "auto"
+        if v is None or int(v) <= 0:
+            return None
+        return int(v)
 
     @classmethod
     def to_gradio_inputs(cls,
                          defaults: Optional[Dict] = None,
                          available_devices: Optional[List] = None,
                          device: Optional[str] = None) -> List[gr.components.base.FormComponent]:
-        return [
+        inputs = [
             gr.Checkbox(
                 label=_("Enable Diarization"),
                 value=defaults.get("is_diarize", cls.__fields__["is_diarize"].default),
@@ -190,6 +232,49 @@ class DiarizationParams(BaseParams):
                 value=defaults.get("enable_offload", cls.__fields__["enable_offload"].default),
             )
         ]
+        with gr.Row():
+            inputs += [
+                gr.Number(
+                    label=_("Number of Speakers"), precision=0, minimum=0,
+                    value=defaults.get("num_speakers") or GRADIO_NONE_NUMBER_MIN,
+                    info=_("Exact speaker count. 0 = detect automatically")
+                ),
+                gr.Number(
+                    label=_("Min Speakers"), precision=0, minimum=0,
+                    value=defaults.get("min_speakers") or GRADIO_NONE_NUMBER_MIN,
+                    info=_("0 = no lower bound")
+                ),
+                gr.Number(
+                    label=_("Max Speakers"), precision=0, minimum=0,
+                    value=defaults.get("max_speakers") or GRADIO_NONE_NUMBER_MIN,
+                    info=_("0 = no upper bound")
+                ),
+            ]
+        with gr.Accordion(_("Advanced Diarization Parameters"), open=False):
+            inputs += [
+                gr.Slider(
+                    label=_("Clustering Threshold"), minimum=0.0, maximum=2.0, step=0.01,
+                    value=defaults.get("clustering_threshold", cls.__fields__["clustering_threshold"].default),
+                    info=_("Lower splits voices into more speakers, higher merges them into fewer. "
+                           "Ignored when the number of speakers is set")
+                ),
+                gr.Slider(
+                    label=_("Min Cluster Size"), minimum=1, maximum=20, step=1,
+                    value=defaults.get("min_cluster_size", cls.__fields__["min_cluster_size"].default),
+                    info=_("Lower lets speakers who only talk briefly get their own label")
+                ),
+                gr.Slider(
+                    label=_("Min Gap Between Turns (s)"), minimum=0.0, maximum=1.0, step=0.05,
+                    value=defaults.get("min_duration_off", cls.__fields__["min_duration_off"].default),
+                    info=_("Pauses shorter than this within one speaker's turn are filled in, reducing label flicker")
+                ),
+                gr.Checkbox(
+                    label=_("Assign Nearest Speaker to Unmatched Words"),
+                    value=defaults.get("fill_nearest", cls.__fields__["fill_nearest"].default),
+                    info=_("Otherwise words outside any detected speech turn are labeled \"None\"")
+                ),
+            ]
+        return inputs
 
 
 class BGMSeparationParams(BaseParams):

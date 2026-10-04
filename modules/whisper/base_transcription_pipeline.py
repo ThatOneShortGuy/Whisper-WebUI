@@ -194,7 +194,8 @@ class BaseTranscriptionPipeline(ABC):
                 audio=origin_audio,
                 use_auth_token=diarization_params.hf_token if diarization_params.hf_token else os.environ.get("HF_TOKEN"),
                 transcribed_result=result,
-                device=diarization_params.diarization_device
+                device=diarization_params.diarization_device,
+                params=diarization_params
             )
             if diarization_params.enable_offload:
                 self.diarizer.offload()
